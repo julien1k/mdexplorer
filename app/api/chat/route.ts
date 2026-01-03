@@ -1,28 +1,13 @@
 import { ToolLoopAgent, createAgentUIStreamResponse, tool, stepCountIs } from "ai";
-import { openai } from "@ai-sdk/openai";
-import { anthropic } from "@ai-sdk/anthropic";
 import { z } from "zod";
 import fs from "fs/promises";
 import path from "path";
-
-// Allowed model IDs - expanded for deeper reasoning capabilities
-const ALLOWED_MODELS = [
-  "gpt-5.2",
-  "gpt-4o-mini",
-  "gpt-4o",
-  "gpt-5-mini",
-  "claude-sonnet-4-20250514",
-  "claude-3-5-sonnet-latest",
-] as const;
-type ModelId = (typeof ALLOWED_MODELS)[number];
-
-// Model provider mapping
-function getModelInstance(modelId: string) {
-  if (modelId.startsWith("claude")) {
-    return anthropic(modelId);
-  }
-  return openai(modelId);
-}
+import {
+  isValidModelId,
+  getModelInstance,
+  getProviderFromModelId,
+  DEFAULT_MODEL_ID,
+} from "@/lib/models";
 
 // Security: validate path is within allowed directory
 async function validatePath(filePath: string, rootDirectory: string): Promise<boolean> {
@@ -201,7 +186,7 @@ export async function POST(req: Request) {
     const body = await req.json();
     const {
       messages,
-      model = "gpt-5-mini",
+      model = DEFAULT_MODEL_ID,
       filePath,
       fileContent,
       selectedText,
@@ -215,8 +200,8 @@ export async function POST(req: Request) {
       rootDirectory?: string;
     } = body;
 
-    // Validate model
-    if (!ALLOWED_MODELS.includes(model as ModelId)) {
+    // Validate model using centralized config
+    if (!isValidModelId(model)) {
       return new Response(JSON.stringify({ error: "Invalid model" }), {
         status: 400,
         headers: { "Content-Type": "application/json" },
@@ -278,7 +263,8 @@ export async function POST(req: Request) {
 
     // Create the agent with dynamic model and context
     const modelInstance = getModelInstance(model);
-    console.log("[Chat API] Using model:", model, "| Provider:", model.startsWith("claude") ? "anthropic" : "openai");
+    const providerName = getProviderFromModelId(model);
+    console.log("[Chat API] Using model:", model, "| Provider:", providerName);
     
     const copilotAgent = new ToolLoopAgent({
       model: modelInstance,

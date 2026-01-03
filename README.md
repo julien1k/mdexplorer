@@ -95,16 +95,27 @@ MD_EXPLORER_ROOT=/path/to/your/documents
 
 ### AI Copilot Setup
 
-To enable the AI Copilot, you need an OpenAI API key:
+To enable the AI Copilot, you need API keys for the providers you want to use. Add them to your `.env.local` file:
 
 ```bash
 # .env.local
-OPENAI_API_KEY=sk-your-api-key-here
+
+# OpenAI (required for GPT models)
+OPENAI_API_KEY=sk-your-openai-key-here
+
+# Anthropic (required for Claude models)
+ANTHROPIC_API_KEY=sk-ant-your-anthropic-key-here
+
+# Google (required for Gemini models)
+GOOGLE_GENERATIVE_AI_API_KEY=your-google-ai-key-here
 ```
 
-You can obtain an API key from [OpenAI's platform](https://platform.openai.com/api-keys).
+You can obtain API keys from:
+- **OpenAI:** [platform.openai.com/api-keys](https://platform.openai.com/api-keys)
+- **Anthropic:** [console.anthropic.com](https://console.anthropic.com/)
+- **Google:** [aistudio.google.com/apikey](https://aistudio.google.com/apikey)
 
-> **Tip:** Copy `.env.local.example` to `.env.local` and fill in your values.
+> **Tip:** Copy `.env.local.example` to `.env.local` and fill in the values for the providers you want to use. You only need keys for the providers whose models you plan to use.
 
 ## 📁 Project Structure
 
@@ -165,12 +176,25 @@ Click the **✨ sparkles icon** in the header toolbar, or look for the purple "A
 
 ### Available Models
 
-| Model | Provider | Best For |
-|-------|----------|----------|
-| GPT-4o Mini | OpenAI | Fast, cost-effective responses |
-| GPT-5 Mini | OpenAI | More capable reasoning |
+MD Explorer supports multiple AI providers and models. Select your preferred model from the dropdown in the chat panel.
 
-You can switch models at any time using the dropdown selector at the top of the chat panel.
+#### Supported Models
+
+| Model | Provider | Description |
+|-------|----------|-------------|
+| **GPT-5.2** | OpenAI | Latest flagship model with advanced reasoning |
+| **GPT-5.2 Turbo** | OpenAI | Faster variant of GPT-5.2 |
+| **O3 Preview** | OpenAI | Next-gen reasoning model (preview) |
+| **GPT-4o** | OpenAI | Multimodal model with vision capabilities |
+| **GPT-4o Mini** | OpenAI | Fast and cost-effective |
+| **Claude Sonnet 4** | Anthropic | Latest Claude model with enhanced capabilities |
+| **Claude 3.5 Sonnet** | Anthropic | Balanced performance and speed |
+| **Gemini 3 Pro Preview** | Google | Most advanced Gemini model (preview) |
+| **Gemini 3 Flash Preview** | Google | Fast next-gen Gemini model (preview) |
+| **Gemini 2.5 Pro** | Google | Latest stable Gemini with enhanced reasoning |
+| **Gemini 2.0 Flash** | Google | Fast and cost-effective |
+
+You can switch models at any time using the dropdown selector at the top of the chat panel. Models are grouped by provider for easy navigation.
 
 ### What the AI Can Do
 
@@ -248,7 +272,6 @@ The user has highlighted the following text:
 ```
 specific selected portion
 ```
-```
 
 ### Privacy Considerations
 
@@ -284,16 +307,16 @@ The editor implements a debounced autosave:
 
 Contributions are welcome! Please feel free to submit a Pull Request.
 
-## � Roadmap
+## 🗺️ Roadmap
 
 - [ ] Multi-file context for AI (reference other documents)
 - [ ] Custom system prompts
 - [ ] Chat history persistence
-- [ ] More AI providers (Anthropic, Google, etc.)
+- [x] More AI providers (Anthropic, Google, etc.) ✅
 - [ ] Keyboard shortcut to open Copilot
 - [ ] AI-powered search across documents
 
-## �📄 License
+## 📄 License
 
 MIT License - feel free to use this project for personal or commercial purposes.
 

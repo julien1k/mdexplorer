@@ -97,20 +97,15 @@ function ToastContainer({ toasts, onDismiss }: { toasts: ToastNotification[]; on
   );
 }
 
-type ModelOption = {
-  id: string;
-  name: string;
-  provider: "openai" | "anthropic";
-};
-
-const AVAILABLE_MODELS: ModelOption[] = [
-  { id: "gpt-4o-mini", name: "GPT-4o Mini", provider: "openai" },
-  { id: "gpt-4o", name: "GPT-4o", provider: "openai" },
-  { id: "gpt-5-mini", name: "GPT-5 Mini", provider: "openai" },
-  { id: "gpt-5.2", name: "GPT-5.2", provider: "openai" },
-  { id: "claude-sonnet-4-20250514", name: "Claude Sonnet 4", provider: "anthropic" },
-  { id: "claude-3-5-sonnet-latest", name: "Claude 3.5 Sonnet", provider: "anthropic" },
-];
+// Import centralized model configuration
+import {
+  MODELS,
+  getModelsGroupedByProvider,
+  PROVIDER_DISPLAY_NAMES,
+  DEFAULT_MODEL_ID,
+  type ModelConfig,
+  type Provider,
+} from "@/lib/models";
 
 interface ChatPanelProps {
   isOpen: boolean;
@@ -136,7 +131,7 @@ export function ChatPanel({
   // The prop currentFileContent may be stale when captured in useChat callbacks
   const { setEditorContent, setIsDirty, settings, setPendingChange, editorContent: storeEditorContent } = useAppStore();
 
-  const [selectedModel, setSelectedModel] = useState<string>("gpt-5.2");
+  const [selectedModel, setSelectedModel] = useState<string>(DEFAULT_MODEL_ID);
   const [showModelSelector, setShowModelSelector] = useState(false);
   const [toolStatus, setToolStatus] = useState<
     "idle" | "running" | "success" | "error" | "proposal"
@@ -387,7 +382,7 @@ export function ChatPanel({
               >
                 <span className="flex items-center gap-2">
                   <Settings2 className="h-3.5 w-3.5 text-gray-400" />
-                  {AVAILABLE_MODELS.find((m) => m.id === selectedModel)?.name ||
+                  {MODELS.find((m) => m.id === selectedModel)?.name ||
                     selectedModel}
                 </span>
                 <ChevronDown
@@ -404,27 +399,42 @@ export function ChatPanel({
                     initial={{ opacity: 0, y: -10 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -10 }}
-                    className="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg overflow-hidden z-10"
+                    className="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg overflow-hidden z-10 max-h-80 overflow-y-auto"
                   >
-                    {AVAILABLE_MODELS.map((model) => (
-                      <button
-                        key={model.id}
-                        onClick={() => {
-                          setSelectedModel(model.id);
-                          setShowModelSelector(false);
-                        }}
-                        className={cn(
-                          "w-full px-3 py-2 text-left text-sm hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors flex items-center justify-between",
-                          selectedModel === model.id &&
-                            "bg-violet-50 dark:bg-violet-900/20"
-                        )}
-                      >
-                        <span>{model.name}</span>
-                        <span className="text-xs text-gray-400 capitalize">
-                          {model.provider}
-                        </span>
-                      </button>
-                    ))}
+                    {(Object.keys(getModelsGroupedByProvider()) as Provider[]).map((provider) => {
+                      const providerModels = getModelsGroupedByProvider()[provider];
+                      if (providerModels.length === 0) return null;
+                      return (
+                        <div key={provider}>
+                          {/* Provider Group Header */}
+                          <div className="px-3 py-1.5 text-xs font-semibold text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-900 uppercase tracking-wider sticky top-0">
+                            {PROVIDER_DISPLAY_NAMES[provider]}
+                          </div>
+                          {/* Models in this provider group */}
+                          {providerModels.map((model) => (
+                            <button
+                              key={model.id}
+                              onClick={() => {
+                                setSelectedModel(model.id);
+                                setShowModelSelector(false);
+                              }}
+                              className={cn(
+                                "w-full px-3 py-2 text-left text-sm hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors flex flex-col gap-0.5",
+                                selectedModel === model.id &&
+                                  "bg-violet-50 dark:bg-violet-900/20"
+                              )}
+                            >
+                              <span className="font-medium">{model.name}</span>
+                              {model.description && (
+                                <span className="text-xs text-gray-400">
+                                  {model.description}
+                                </span>
+                              )}
+                            </button>
+                          ))}
+                        </div>
+                      );
+                    })}
                   </motion.div>
                 )}
               </AnimatePresence>
