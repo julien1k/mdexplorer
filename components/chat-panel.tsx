@@ -9,9 +9,9 @@ import remarkGfm from "remark-gfm";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { oneDark } from "react-syntax-highlighter/dist/esm/styles/prism";
 import { useAppStore } from "@/stores/app-store";
-import { readFile } from "@/actions/file-actions";
 import { cn } from "@/lib/utils";
-import type { PendingChange } from "@/types";
+import type { PendingChange, ToolPermissionRequest } from "@/types";
+import { ToolPermissionDialog } from "./tool-permission-dialog";
 import {
   Bot,
   User,
@@ -111,7 +111,6 @@ interface ChatPanelProps {
   isOpen: boolean;
   onClose: () => void;
   currentFilePath: string | null;
-  currentFileContent: string;
   selectedText: string;
   onFileUpdated: () => void;
   /** Increment this to force the editor to re-render with fresh content */
@@ -122,13 +121,12 @@ export function ChatPanel({
   isOpen,
   onClose,
   currentFilePath,
-  currentFileContent,
   selectedText: selectedTextProp,
   onFileUpdated,
   onForceEditorRefresh,
 }: ChatPanelProps) {
-  // Get editorContent directly from store to avoid stale closure issues
-  // The prop currentFileContent may be stale when captured in useChat callbacks
+  // Get editorContent directly from store to ensure we always have the latest content
+  // The editor syncs content to the store on every change, so this is always up-to-date
   const { setEditorContent, setIsDirty, settings, setPendingChange, editorContent: storeEditorContent } = useAppStore();
 
   const [selectedModel, setSelectedModel] = useState<string>(DEFAULT_MODEL_ID);
@@ -139,17 +137,9 @@ export function ChatPanel({
   const [inputValue, setInputValue] = useState("");
   const [selectedText, setSelectedText] = useState("");
   const [toasts, setToasts] = useState<ToastNotification[]>([]);
+  const [pendingPermission, setPendingPermission] = useState<ToolPermissionRequest | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
-  
-  // Ref to always have access to the latest editor content in callbacks
-  // This avoids stale closure issues where callbacks capture old prop values
-  const latestEditorContentRef = useRef<string>(storeEditorContent);
-  
-  // Keep the ref updated with the latest store value
-  useEffect(() => {
-    latestEditorContentRef.current = storeEditorContent;
-  }, [storeEditorContent]);
 
   // Toast helpers
   const addToast = useCallback((type: ToastType, title: string, message: string) => {
@@ -179,6 +169,53 @@ export function ChatPanel({
       );
 
       if (toolParts.length > 0) {
+        // Check for permission requests from any tool
+        for (const part of toolParts) {
+          // Type guard for tool parts with output
+          if (
+            part.type.startsWith("tool-") &&
+            "state" in part &&
+            "output" in part &&
+            part.state === "output-available" &&
+            part.output &&
+            typeof part.output === "object" &&
+            "requiresPermission" in part.output &&
+            part.output.requiresPermission
+          ) {
+            const output = part.output as {
+              requiresPermission: boolean;
+              permissionRequest?: {
+                toolName?: string;
+                action?: string;
+                reason?: string;
+                filePath?: string;
+                pattern?: string;
+                query?: string;
+                filePattern?: string;
+              };
+            };
+
+            const permissionRequest: ToolPermissionRequest = {
+              id: Date.now().toString(),
+              toolName: output.permissionRequest?.toolName || part.type.replace("tool-", ""),
+              action: output.permissionRequest?.action || "execute",
+              reason: output.permissionRequest?.reason || "No reason provided",
+              parameters: {
+                filePath: output.permissionRequest?.filePath,
+                pattern: output.permissionRequest?.pattern,
+                query: output.permissionRequest?.query,
+                filePattern: output.permissionRequest?.filePattern,
+                ...output.permissionRequest,
+              },
+              timestamp: Date.now(),
+              status: "pending",
+            };
+            setPendingPermission(permissionRequest);
+            addToast("info", "Permission Required", "The AI is requesting permission to use a tool");
+            return; // Stop processing other parts until permission is handled
+          }
+        }
+
         // Check for proposeDocumentChange tool (new diff workflow)
         const proposalPart = toolParts.find(
           (part) => part.type === "tool-proposeDocumentChange"
@@ -210,9 +247,9 @@ export function ChatPanel({
             setToolStatus("proposal");
             
             // Create the pending change for diff review
-            // IMPORTANT: Use the ref to get the LATEST editor content, not the prop
-            // which may be stale due to closure capture at callback creation time
-            const currentContent = latestEditorContentRef.current;
+            // Use Zustand's getState() to get the absolutely latest editor content
+            // This avoids any stale closure issues since we read directly from the store
+            const currentContent = useAppStore.getState().editorContent;
             console.log("[ChatPanel] Using latest editor content for diff (length:", currentContent.length, ")");
             
             const pendingChange: PendingChange = {
@@ -295,14 +332,18 @@ export function ChatPanel({
       e.preventDefault();
       if (!inputValue.trim() || isLoading) return;
 
-      // Pass body at request time to ensure current values are used
+      // Use Zustand's getState() to get the absolutely latest editor content at submission time
+      // This ensures the AI always receives the current content, not a stale closure value
+      const latestContent = useAppStore.getState().editorContent;
+      console.log("[ChatPanel] Sending message with content length:", latestContent.length);
+      
       sendMessage(
         { text: inputValue },
         {
           body: {
             model: selectedModel,
             filePath: currentFilePath,
-            fileContent: currentFileContent,
+            fileContent: latestContent,
             selectedText: selectedText || undefined,
             rootDirectory: settings.rootDirectory,
           },
@@ -312,7 +353,7 @@ export function ChatPanel({
       // Clear selected text after sending
       setSelectedText("");
     },
-    [inputValue, isLoading, sendMessage, selectedModel, currentFilePath, currentFileContent, selectedText, settings.rootDirectory]
+    [inputValue, isLoading, sendMessage, selectedModel, currentFilePath, selectedText, settings.rootDirectory]
   );
 
   // Handle keyboard shortcuts
@@ -332,10 +373,84 @@ export function ChatPanel({
     setToolStatus("idle");
   }, [setMessages]);
 
+  // Handle tool permission approval
+  const handlePermissionApprove = useCallback(async () => {
+    if (!pendingPermission) return;
+
+    try {
+      // Execute the tool with approved permissions
+      const response = await fetch("/api/chat/execute-tool", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          toolName: pendingPermission.toolName,
+          parameters: pendingPermission.parameters,
+          rootDirectory: settings.rootDirectory,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        addToast("success", "Tool Executed", `${pendingPermission.toolName} completed successfully`);
+        
+        // Send the result back to the AI in the conversation
+        const resultMessage = `Tool "${pendingPermission.toolName}" executed successfully. Result: ${JSON.stringify(result.data, null, 2)}`;
+        sendMessage(
+          { text: resultMessage },
+          {
+            body: {
+              model: selectedModel,
+              filePath: currentFilePath,
+              fileContent: useAppStore.getState().editorContent,
+              rootDirectory: settings.rootDirectory,
+            },
+          }
+        );
+      } else {
+        addToast("error", "Tool Failed", result.error || "Unknown error");
+      }
+    } catch (error) {
+      addToast("error", "Execution Error", error instanceof Error ? error.message : "Failed to execute tool");
+    } finally {
+      setPendingPermission(null);
+    }
+  }, [pendingPermission, settings.rootDirectory, addToast, sendMessage, selectedModel, currentFilePath]);
+
+  // Handle tool permission denial
+  const handlePermissionDeny = useCallback(() => {
+    if (!pendingPermission) return;
+    
+    addToast("info", "Permission Denied", `Access to ${pendingPermission.toolName} was denied`);
+    
+    // Notify the AI that permission was denied
+    const denialMessage = `Permission denied for tool "${pendingPermission.toolName}". The user did not approve the request.`;
+    sendMessage(
+      { text: denialMessage },
+      {
+        body: {
+          model: selectedModel,
+          filePath: currentFilePath,
+          fileContent: useAppStore.getState().editorContent,
+          rootDirectory: settings.rootDirectory,
+        },
+      }
+    );
+    
+    setPendingPermission(null);
+  }, [pendingPermission, addToast, sendMessage, selectedModel, currentFilePath, settings.rootDirectory]);
+
   return (
     <>
       {/* Toast notifications */}
       <ToastContainer toasts={toasts} onDismiss={dismissToast} />
+      
+      {/* Tool Permission Dialog */}
+      <ToolPermissionDialog
+        request={pendingPermission}
+        onApprove={handlePermissionApprove}
+        onDeny={handlePermissionDeny}
+      />
       
       <AnimatePresence>
         {isOpen && (

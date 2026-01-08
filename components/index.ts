@@ -6,3 +6,4 @@ export { ContextMenu } from "./context-menu";
 export { ConfirmationDialog } from "./confirmation-dialog";
 export { ChatPanel } from "./chat-panel";
 export { DiffReviewPanel } from "./diff-review-panel";
+export { ToolPermissionDialog } from "./tool-permission-dialog";

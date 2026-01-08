@@ -36,7 +36,6 @@ export default function Home() {
     isChatPanelOpen,
     setIsChatPanelOpen,
     activeFile,
-    editorContent,
     selectedText,
     triggerRefresh,
     incrementEditorVersion,
@@ -168,7 +167,6 @@ export default function Home() {
           isOpen={isChatPanelOpen}
           onClose={() => setIsChatPanelOpen(false)}
           currentFilePath={activeFile}
-          currentFileContent={editorContent}
           selectedText={selectedText}
           onFileUpdated={triggerRefresh}
           onForceEditorRefresh={incrementEditorVersion}

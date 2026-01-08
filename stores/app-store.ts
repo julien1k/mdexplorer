@@ -1,7 +1,7 @@
 "use client";
 
 import { create } from "zustand";
-import type { FileNode, AppSettings, RecentFile, ContextMenuState, PendingChange } from "@/types";
+import type { FileNode, AppSettings, RecentFile, ContextMenuState, PendingChange, ToolPermissionRequest } from "@/types";
 import { DEFAULT_SETTINGS } from "@/types";
 
 interface AppState {
@@ -85,6 +85,11 @@ interface AppState {
   pendingChange: PendingChange | null;
   setPendingChange: (change: PendingChange | null) => void;
   clearPendingChange: () => void;
+
+  // Tool permission requests
+  toolPermissionRequest: ToolPermissionRequest | null;
+  setToolPermissionRequest: (request: ToolPermissionRequest | null) => void;
+  clearToolPermissionRequest: () => void;
 }
 
 // Helper to get all folder paths recursively
@@ -205,6 +210,11 @@ export const useAppStore = create<AppState>((set, get) => ({
   pendingChange: null,
   setPendingChange: (change) => set({ pendingChange: change }),
   clearPendingChange: () => set({ pendingChange: null }),
+
+  // Tool permission requests
+  toolPermissionRequest: null,
+  setToolPermissionRequest: (request) => set({ toolPermissionRequest: request }),
+  clearToolPermissionRequest: () => set({ toolPermissionRequest: null }),
 }));
 
 // Hook for backward compatibility with existing code

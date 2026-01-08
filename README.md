@@ -10,6 +10,7 @@ A **Notion-style local Markdown editor** and file browser built with Next.js (Ap
 ## ✨ Features
 
 ### 🤖 AI Copilot
+
 - **Writing assistant** - Get help with summarizing, editing, reformatting, and improving your markdown
 - **Direct document editing** - The AI can modify your files directly using the `updateDocument` tool
 - **Model selection** - Choose between GPT-4o Mini and GPT-5 Mini (OpenAI)
@@ -17,18 +18,22 @@ A **Notion-style local Markdown editor** and file browser built with Next.js (Ap
 - **Streaming responses** - Real-time streaming for a responsive chat experience
 
 ### 📁 File Browser
+
 - **Recursive file tree** - Browse your local files in an expandable sidebar
 - **Smart file handling** - Markdown files open in the editor, other files open in their default app
 - **Folder exploration** - Double-click folders to open them in File Explorer (Windows), Finder (macOS), or your file manager (Linux)
 
 ### ✏️ Block-Based Editor
+
 - **Notion-style editing** - Powered by BlockNote.js for a familiar block-based experience
 - **Autosave** - Changes are automatically saved after a 1.5-second debounce
 - **Rich formatting** - Support for headings, lists, code blocks, and more
 - **Collapsible headings** - Toggle outline mode to collapse content under headings
 
 ### ⌨️ Command Palette
+
 Press `Ctrl + K` (or `Cmd + K` on Mac) to access:
+
 - **Recent Files** - Browse and open recently accessed documents
 - **Search Files** - Quick file search across your documents
 - **Save File** - Manually save current document
@@ -38,27 +43,32 @@ Press `Ctrl + K` (or `Cmd + K` on Mac) to access:
 - **Switch Root** - Change the active document directory
 
 ### 🕒 Recent Files
+
 - **Quick Access** - Quickly jump to your recently opened files
 - **Command Palette Integration** - Access recent files directly from the command palette (`Ctrl + K`)
 
 ### ⚙️ Settings & Customization
+
 - **Root Directory** - Change your document root folder directly from the UI
 - **Exclusions** - Configure files and folders to hide from the file explorer
 - **Settings Modal** - Easy access to configuration via the gear icon or command palette
 
 ### 🖱️ Context Menu
+
 Right-click on files or folders to access:
 - **File Operations** - Rename, delete, and duplicate files
 - **System Integration** - Copy file paths or open in your OS file manager
 - **Creation** - Create new files and folders at specific locations
 
 ### 📝 Diff Review
+
 - **AI Change Review** - Visual diff interface for reviewing AI-suggested changes
 - **Accept/Reject** - Selectively apply or discard AI modifications
 
 ## 🚀 Getting Started
 
 ### Prerequisites
+
 - Node.js 18+
 - npm, yarn, pnpm, or bun
 
@@ -111,6 +121,7 @@ GOOGLE_GENERATIVE_AI_API_KEY=your-google-ai-key-here
 ```
 
 You can obtain API keys from:
+
 - **OpenAI:** [platform.openai.com/api-keys](https://platform.openai.com/api-keys)
 - **Anthropic:** [console.anthropic.com](https://console.anthropic.com/)
 - **Google:** [aistudio.google.com/apikey](https://aistudio.google.com/apikey)
@@ -215,6 +226,7 @@ The AI has access to a special tool that allows it to **directly modify your cur
 4. Trigger an automatic reload in the editor
 
 You'll see a status indicator showing:
+
 - 🔄 **"Applying changes..."** - The AI is writing to the file
 - ✅ **"Changes applied successfully"** - The file was updated
 - ❌ **"Failed to apply changes"** - An error occurred
@@ -268,7 +280,9 @@ This is my document content...
 ```
 
 ## Selected Text (if any)
+
 The user has highlighted the following text:
+
 ```
 specific selected portion
 ```
@@ -285,19 +299,25 @@ specific selected portion
 ## ⚡ Key Features Implementation
 
 ### File System Operations
+
 All file system operations use Next.js Server Actions for security:
+
 - Files are sandboxed to the configured root directory
 - Path traversal attempts are blocked
 - Uses Node.js `fs/promises` for async operations
 
-### Opening External Files
+### Opening External File
+
 Non-markdown files and folders are opened using platform-specific commands:
+
 - **Windows:** `start` / `explorer`
 - **macOS:** `open`
 - **Linux:** `xdg-open`
 
 ### Autosave
+
 The editor implements a debounced autosave:
+
 1. Content changes trigger a 1.5-second timer
 2. Timer resets on each new change
 3. After the debounce period, content is converted to Markdown and saved
@@ -309,14 +329,25 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 
 ## 🗺️ Roadmap
 
-- [ ] Multi-file context for AI (reference other documents)
-- [ ] Custom system prompts
-- [ ] Chat history persistence
-- [x] More AI providers (Anthropic, Google, etc.) ✅
-- [ ] Keyboard shortcut to open Copilot
-- [ ] AI-powered search across documents
+### 🤖 AI Capabilities
+
+- [ ] **Local LLM Support** - Privacy-first AI with Ollama/LM Studio
+- [ ] **RAG / Knowledge Base** - Chat with your entire document library? Maybe
+- [ ] **Chat History Persistence** - Save and restore conversations
+- [ ] **Custom System Prompts** - Configurable AI persona
+- [x] **More AI Providers** - Anthropic, Google, etc. ✅
+
+### 📝 Editor & Knowledge Management
+
+- [ ] **Bi-directional Linking** - `[[WikiLinks]]` and backlinks panel
+- [ ] **Frontmatter & Tags** - YAML metadata support for organization
+- [ ] **Multi-Format Export** - PDF, HTML, and Docx export
+
+### ⚙️ System & Integrations
+
+- [ ] **Git Integration** - Version control and synchronization? OneDrive / Google Drive / etc.? Maybe.
+- [ ] **Keyboard Shortcuts** - Global hotkeys for Copilot and actions
 
 ## 📄 License
 
 MIT License - feel free to use this project for personal or commercial purposes.
-

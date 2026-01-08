@@ -67,3 +67,32 @@ export interface PendingChange {
   /** Timestamp when the proposal was created */
   timestamp: number;
 }
+
+/**
+ * Represents a tool permission request from the AI
+ */
+export interface ToolPermissionRequest {
+  /** Unique identifier for this permission request */
+  id: string;
+  /** The name of the tool being requested */
+  toolName: string;
+  /** The action being requested (read, write, search, etc.) */
+  action: string;
+  /** The reason provided by the AI for needing this permission */
+  reason: string;
+  /** Additional parameters specific to the tool */
+  parameters: Record<string, unknown>;
+  /** Timestamp when the request was made */
+  timestamp: number;
+  /** Status of the request */
+  status: "pending" | "approved" | "denied";
+}
+
+/**
+ * Tool execution result returned to the AI
+ */
+export interface ToolExecutionResult {
+  success: boolean;
+  data?: unknown;
+  error?: string;
+}
